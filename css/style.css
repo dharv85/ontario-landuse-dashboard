@@ -143,6 +143,28 @@ body {
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.legend.collapsed h4 {
+    margin-bottom: 0;
+}
+
+.legend.collapsed #legend-items {
+    display: none;
+}
+
+.legend-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.legend.collapsed .legend-arrow {
+    transform: rotate(-90deg);
 }
 
 .legend-item {

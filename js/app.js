@@ -815,6 +815,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setupTabs();
 
     document.getElementById("clear-btn").addEventListener("click", clearSelection);
+    document.getElementById("legend-toggle").addEventListener("click", () => {
+        document.getElementById("map-legend").classList.toggle("collapsed");
+    });
 
     loadData();
 });
