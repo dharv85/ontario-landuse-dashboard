@@ -2,7 +2,7 @@
 
 An interactive map-centric dashboard exploring the geographic relationship between land use patterns and employment sectors across Ontario's 685 lower-tier and single-tier municipalities.
 
-**Live demo:** *(GCP URL to be added after deployment)*
+**Live demo:** https://storage.googleapis.com/ontario-landuse-dashboard/index.html
 
 ## Features
 
