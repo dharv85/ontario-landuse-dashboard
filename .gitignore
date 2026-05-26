@@ -1,0 +1,7 @@
+.DS_Store
+data/process_employment.py
+data/build_dashboard_data.py
+data/statscan_industry.zip
+data/98100456_MetaData.csv
+media/vader_audio/
+media/vader_clips/

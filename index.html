@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gloria's Exploration — Land Use & Employment in Ontario</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">
+    <div class="loading-spinner">
+        <div class="dot-loader">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <p>Loading Ontario municipalities...</p>
+    </div>
+</div>
+
+<div class="dashboard">
+
+    <header class="header">
+        <h1>Gloria's Exploration into the Geographic Relationship Between <span>Landuse</span> and <span>Employment</span> in Ontario</h1>
+        <div class="header-meta">
+            <span class="badge">Census 2021</span>
+            <span class="badge">685 Municipalities</span>
+        </div>
+    </header>
+
+    <div class="map-container">
+        <div id="map"></div>
+
+        <div class="map-overlay">
+            <div id="hover-info" class="map-info-box" style="display:none;"></div>
+        </div>
+
+        <div class="legend" id="map-legend">
+            <h4>Land Cover Classes</h4>
+            <div id="legend-items"></div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="howto">How To</button>
+            <button class="tab-btn" data-tab="about">About</button>
+        </div>
+
+        <!-- ============ DASHBOARD TAB ============ -->
+        <div class="tab-content active" id="tab-dashboard">
+
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Search municipality...">
+                <div id="search-results" class="search-results" style="display:none;"></div>
+            </div>
+
+            <!-- Map layers + opacity slider -->
+            <div class="sidebar-section">
+                <h2>Map Layers</h2>
+                <div class="filter-row" style="margin-bottom:8px;">
+                    <button class="filter-btn active" data-mode="satellite">Satellite</button>
+                    <button class="filter-btn active" data-mode="boundaries">Boundaries</button>
+                    <button class="filter-btn active" data-mode="rivers">Rivers</button>
+                </div>
+                <div class="slider-row">
+                    <label class="slider-label">Land Cover Opacity</label>
+                    <input type="range" id="lc-opacity-slider" class="opacity-slider" min="0" max="1" step="0.05" value="0.85">
+                    <span class="slider-value" id="lc-opacity-value">85%</span>
+                </div>
+            </div>
+
+            <!-- Extent summary -->
+            <div class="sidebar-section">
+                <h2>Visible Area</h2>
+                <div class="summary-stats">
+                    <div class="stat-card">
+                        <div class="label">Municipalities</div>
+                        <div class="number" id="extent-muni-count">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Total Employed</div>
+                        <div class="number accent" id="extent-total-emp">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected municipality -->
+            <div id="placeholder-info" class="muni-placeholder">
+                <div class="icon">&#x1F5FA;</div>
+                <p>Click a municipality on the map to see details</p>
+            </div>
+
+            <div id="selected-info" style="display:none;">
+                <div class="selected-muni">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h2 id="muni-name"></h2>
+                            <div class="sub" id="muni-sub"></div>
+                        </div>
+                        <button class="clear-btn" id="clear-btn">Clear</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="summary-stats">
+                        <div class="stat-card">
+                            <div class="label">Total Employed</div>
+                            <div class="number accent" id="stat-employed">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">Top Job Sector</div>
+                            <div class="number" id="stat-top-sector" class="small-number">&mdash;</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">Main Land Cover</div>
+                            <div class="number" id="stat-dominant-lc" class="small-number">&mdash;</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">Settlement %</div>
+                            <div class="number" id="stat-settlement">0%</div>
+                        </div>
+                    </div>
+                    <p class="compare-hint">Shift+Click another municipality to compare</p>
+                </div>
+            </div>
+
+            <!-- Compare panel (#7 — Kay) -->
+            <div id="compare-info" style="display:none;">
+                <div class="selected-muni compare-muni">
+                    <h2 id="compare-name" class="compare-title"></h2>
+                    <div class="sub" id="compare-sub"></div>
+                </div>
+                <div class="sidebar-section">
+                    <div class="summary-stats">
+                        <div class="stat-card compare-card">
+                            <div class="label">Total Employed</div>
+                            <div class="number accent" id="compare-employed">0</div>
+                        </div>
+                        <div class="stat-card compare-card">
+                            <div class="label">Top Job Sector</div>
+                            <div class="number" id="compare-top-sector" class="small-number">&mdash;</div>
+                        </div>
+                        <div class="stat-card compare-card">
+                            <div class="label">Main Land Cover</div>
+                            <div class="number" id="compare-dominant-lc" class="small-number">&mdash;</div>
+                        </div>
+                        <div class="stat-card compare-card">
+                            <div class="label">Settlement %</div>
+                            <div class="number" id="compare-settlement">0%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-wrapper compare-chart-wrapper">
+                        <canvas id="compareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-container">
+                <div class="chart-wrapper employment-chart">
+                    <canvas id="employmentChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-wrapper landcover-chart">
+                    <canvas id="landcoverChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Scatter plot (#8 — Feynman) -->
+            <div class="chart-container">
+                <div class="chart-wrapper scatter-chart">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ HOW TO TAB ============ -->
+        <div class="tab-content" id="tab-howto">
+            <div class="info-page">
+                <h2>How to Use This Dashboard</h2>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x1F5FA;</div>
+                    <h3>Move Around the Map</h3>
+                    <ul>
+                        <li><strong>Drag</strong> the map with your mouse to move around Ontario</li>
+                        <li><strong>Zoom in and out</strong> using your scroll wheel or the + and &minus; buttons</li>
+                        <li><strong>Hover</strong> over a coloured area to see its name</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x1F4CD;</div>
+                    <h3>Pick a Municipality</h3>
+                    <ul>
+                        <li><strong>Click</strong> on any outlined area on the map to pick it</li>
+                        <li>The charts on the right will change to show information about that place</li>
+                        <li>You can also <strong>type a name</strong> in the search box to find a place</li>
+                        <li>Click <strong>Clear</strong> to go back to seeing everything</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x2696;</div>
+                    <h3>Compare Two Places</h3>
+                    <ul>
+                        <li>First <strong>click</strong> one municipality</li>
+                        <li>Then hold the <strong>Shift key</strong> and click a second one</li>
+                        <li>A comparison chart will appear so you can see how the two places are different!</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x1F4CA;</div>
+                    <h3>Read the Charts</h3>
+                    <ul>
+                        <li>The <strong>bar chart</strong> shows what kinds of jobs people have (like healthcare, farming, or construction)</li>
+                        <li>The <strong>circle chart</strong> shows what the land looks like (forest, farmland, water, towns)</li>
+                        <li>The <strong>dot chart</strong> at the bottom shows if places with more farmland also have more farming jobs</li>
+                        <li>When you haven't picked a place, the charts show information for everything you can see on the map</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x1F3A8;</div>
+                    <h3>Change What You See</h3>
+                    <ul>
+                        <li>Use the <strong>Land Cover Opacity</strong> slider to fade the land cover colours in and out</li>
+                        <li>Turn <strong>Satellite</strong> on or off to see real photos from space</li>
+                        <li>Turn <strong>Rivers</strong> on to see Ontario's major waterways &mdash; notice how towns are often near rivers!</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-icon">&#x1F50D;</div>
+                    <h3>Things to Look For</h3>
+                    <ul>
+                        <li>Zoom into <strong>southern Ontario</strong> &mdash; do you see lots of yellow (farms)?</li>
+                        <li>Look at the <strong>north</strong> &mdash; what colour do you see the most? (Hint: green for forests!)</li>
+                        <li>Click on <strong>Toronto</strong> and then Shift+Click <strong>Hearst</strong> &mdash; how are their jobs different?</li>
+                        <li>Check the <strong>dot chart</strong> &mdash; do the dots go up and to the right? That means farmland and farming jobs go together!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ ABOUT TAB ============ -->
+        <div class="tab-content" id="tab-about">
+            <div class="info-page">
+                <h2>About This Dashboard</h2>
+
+                <div class="about-purpose">
+                    <p>Have you ever wondered what the land in Ontario looks like from above? Some of it is covered in thick forests, some is flat farmland, and some has cities and towns where people live and work.</p>
+                    <p>This dashboard is like a special map that lets you explore <strong>two big questions</strong>:</p>
+                    <ol class="about-questions">
+                        <li>What does the land in Ontario look like? (Is it forest? Farmland? A city?)</li>
+                        <li>What kinds of jobs do people have in different parts of Ontario?</li>
+                    </ol>
+                    <p>It turns out these two things are connected! In places with lots of farmland, many people work in agriculture. In big cities, people work in offices, hospitals, and stores. And in the far north where there are huge forests, people work in forestry and mining.</p>
+                    <p>Ontario has <strong>685 municipalities</strong> (that's what we call cities, towns, and townships). You can click on any of them to learn more!</p>
+                </div>
+
+                <!-- #3 — Northern Ontario note (Thompson) -->
+                <div class="info-card note-card">
+                    <h3>Why doesn't the north have boundary lines?</h3>
+                    <p>If you look at the map, you'll notice that most of <strong>northern Ontario</strong> doesn't have the black boundary lines that southern Ontario has. That's because those areas are not organized into municipalities the way cities and towns are in the south.</p>
+                    <p>Much of northern Ontario is <strong>Crown land</strong> (land owned by the government) and <strong>Indigenous territories</strong> &mdash; the traditional homelands of First Nations peoples who have lived there for thousands of years. These areas have their own forms of governance that are different from the municipal system shown on this map.</p>
+                    <p>The north is definitely not empty! It has vast boreal forests, important rivers, rich mineral deposits, and communities with deep histories. It just isn't divided up using the same kind of municipal boundaries.</p>
+                </div>
+
+                <div class="info-card">
+                    <h3>What is Land Cover?</h3>
+                    <ul>
+                        <li><strong>Land cover</strong> means what you would see if you looked down from an airplane or a satellite</li>
+                        <li>It could be <strong>trees</strong> (forest), <strong>crops</strong> (farmland), <strong>water</strong> (lakes and rivers), <strong>wetlands</strong> (swamps and marshes), or <strong>buildings</strong> (cities and towns)</li>
+                        <li>Scientists use special cameras on satellites to take pictures and figure out what covers the ground</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3>What is Employment Data?</h3>
+                    <ul>
+                        <li><strong>Employment</strong> means the jobs that people have</li>
+                        <li>Every few years, the government asks everyone in Canada about their jobs &mdash; this is called the <strong>Census</strong></li>
+                        <li>Jobs are sorted into groups like healthcare, farming, construction, teaching, and many more</li>
+                        <li>The data in this dashboard comes from the <strong>2021 Census</strong></li>
+                    </ul>
+                </div>
+
+                <div class="about-section-header"><h3>Where Does the Data Come From?</h3></div>
+
+                <div class="info-card source-card">
+                    <h3>Land Cover Map</h3>
+                    <div class="source-detail">
+                        <p><strong>Dataset:</strong> Ontario Land Cover Compilation v2.0</p>
+                        <p><strong>From:</strong> Ontario Ministry of Natural Resources and Forestry</p>
+                        <p><strong>Where to find it:</strong> Ontario GeoHub (geohub.lio.gov.on.ca)</p>
+                        <p><strong>What it shows:</strong> A map of all of Ontario showing 29 different types of land cover, made from satellite pictures. Each pixel on the map is 15 metres across &mdash; that's about the length of a school bus!</p>
+                        <p><strong>How it was made:</strong> Scientists combined three separate land cover maps (Far North Land Cover, SOLRIS for southern Ontario, and Provincial Land Cover 2000) into one big map of the whole province.</p>
+                    </div>
+                </div>
+
+                <div class="info-card source-card">
+                    <h3>Municipality Boundaries</h3>
+                    <div class="source-detail">
+                        <p><strong>Dataset:</strong> Municipal Boundary &mdash; Lower and Single Tier</p>
+                        <p><strong>From:</strong> Ontario Ministry of Municipal Affairs and Housing</p>
+                        <p><strong>Where to find it:</strong> Ontario GeoHub (geohub.lio.gov.on.ca)</p>
+                        <p><strong>What it shows:</strong> The outlines of all 685 lower-tier and single-tier municipalities in Ontario. A municipality is like a city, town, or township &mdash; it's an area with its own local government.</p>
+                        <p><strong>How we used it:</strong> We downloaded the boundary shapes and simplified them a little so the map loads quickly in your web browser.</p>
+                    </div>
+                </div>
+
+                <div class="info-card source-card">
+                    <h3>Employment (Jobs) Data</h3>
+                    <div class="source-detail">
+                        <p><strong>Dataset:</strong> Census 2021 &mdash; Table 98-10-0456-01</p>
+                        <p><strong>From:</strong> Statistics Canada</p>
+                        <p><strong>Where to find it:</strong> www150.statcan.gc.ca</p>
+                        <p><strong>What it shows:</strong> How many people work in each type of job (like farming, healthcare, teaching, building things) in every municipality in Ontario.</p>
+                        <p><strong>How it was collected:</strong> In 2021, the Canadian government sent a survey to every household in the country. One out of every four households got extra questions about their jobs. That information was counted up and organized by where people live.</p>
+                        <p><strong>Job categories:</strong> Jobs are grouped using a system called NAICS (North American Industry Classification System). There are 20 big groups, from "Agriculture &amp; Forestry" to "Public Administration" (government jobs).</p>
+                    </div>
+                </div>
+
+                <div class="about-credits">
+                    <h3>Credits</h3>
+                    <ul>
+                        <li>Ontario Ministry of Natural Resources and Forestry &mdash; Land Information Ontario</li>
+                        <li>Ontario Ministry of Municipal Affairs and Housing &mdash; Municipal Boundaries</li>
+                        <li>Statistics Canada &mdash; 2021 Census of Population</li>
+                        <li>Map tiles by Esri (satellite) and CARTO (labels)</li>
+                    </ul>
+                    <p class="about-school">School Project, 2026</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
