@@ -818,6 +818,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("legend-toggle").addEventListener("click", () => {
         document.getElementById("map-legend").classList.toggle("collapsed");
     });
+    if (window.innerWidth <= 900) {
+        document.getElementById("map-legend").classList.add("collapsed");
+    }
 
     loadData();
 });
